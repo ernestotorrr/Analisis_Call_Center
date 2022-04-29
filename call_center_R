@@ -1,0 +1,278 @@
+library(DBI)
+library(RMySQL)
+
+#install.packages("RMySQL")
+
+# ==============================================================================
+#  USO DE MYSQL EN AWS RDS
+# ==============================================================================
+
+bd <- DBI::dbConnect(RMySQL::MySQL(),
+                     dbname = "",
+                     host = "basedatos.cklavex8stb1.us-east-1.rds.amazonaws.com",
+                     user = "usuario_master",
+                     password = rstudioapi::askForPassword("Database password"),
+                     Port     = 3306)
+
+# Mostrar las bases de datos existentes
+dbGetQuery(bd, 'SHOW DATABASES')
+# Usar la base de datos creada
+dbGetQuery(bd, 'USE ProyectoFinal')
+# Usar la base de datos creada
+dbGetQuery(bd, 'SHOW TABLES')
+dbGetQuery(bd, 'SELECT * FROM Gestiones')
+dbGetQuery(bd, 'SELECT * FROM CatalogoGestiones')
+
+
+datos <- dbGetQuery(bd, 'SELECT a.*, b.fld_glo_res_cli,b.fld_tipo_contacto
+                         FROM Gestiones a 
+                         INNER JOIN CatalogoGestiones b 
+                         ON a.fld_cod_emp || a.fld_res_cli  = b.fld_cod_emp || b.fld_res_cli')
+
+head(datos)
+attach(datos)   
+
+
+summary(datos)
+
+
+######## ********************* ANALISIS EXPLORATORIO ******************
+
+#Frecuecnias
+table(fld_tip_linea)                     # Frecuencias absolutas
+prop.table(table(fld_tip_linea))         # Frecuencias relativas
+prop.table(table(fld_tip_linea))*100     # Frecuencias porcentuales
+
+##### ************ Analisis Univariado ******************************
+
+##****** Variables Cualitativas **************
+
+#Variable: fld_tip_linea
+
+counts   <- table(fld_tip_linea)
+barv <- barplot(counts,
+        main="Grafico de Barras Vertical",         
+        xlab="Situacion de Tipo de Linea", 
+        ylab="Frecuencia",                         
+        col ="cadetblue3",
+        ylim = c(0,110000))  
+text(barv, counts,labels=counts, pos=3, offset=0.8)  # text(x,y)
+
+
+#Variable: fld_tip_dis
+
+counts   <- table(fld_tip_dis)
+barv <- barplot(counts,
+                main="Grafico de Barras Vertical",         
+                xlab="Situacion de Tipo de Dispositivo", 
+                ylab="Frecuencia",                         
+                col ="cadetblue3",
+                ylim = c(0,60000))  
+text(barv, counts,labels=counts, pos=3, offset=0.8)  # text(x,y)
+
+
+#Variable: fld_nom_vta
+
+counts   <- table(fld_nom_vta)
+barv <- barplot(counts,
+                main="Grafico de Barras Vertical",         
+                xlab="Situacion de Nombre Venta", 
+                ylab="Frecuencia",                         
+                col ="cadetblue3",
+                ylim = c(0,60000))  
+text(barv, counts,labels=counts, pos=3, offset=0.8)  # text(x,y)
+
+
+#Variable: fld_canal
+
+counts   <- table(fld_canal)
+barv <- barplot(counts,
+                main="Grafico de Barras Vertical",         
+                xlab="Situacion de Canal", 
+                ylab="Frecuencia",                         
+                col ="cadetblue3",
+                ylim = c(0,110000))  
+text(barv, counts,labels=counts, pos=3, offset=0.8)  # text(x,y)
+
+
+#Variable: fld_glo_res_cli
+
+counts   <- table(fld_glo_res_cli)
+barv <- barplot(counts,
+                main="Grafico de Barras Vertical",         
+                xlab="Situacion de Respuesta Cliente", 
+                ylab="Frecuencia",                         
+                col ="cadetblue3",
+                ylim = c(0,30000))  
+
+
+#Variable: fld_tipo_contacto
+
+counts   <- table(fld_tipo_contacto)
+barv <- barplot(counts,
+                main="Grafico de Barras Vertical",         
+                xlab="Situacion de Tipo de Contacto", 
+                ylab="Frecuencia",                         
+                col ="cadetblue3",
+                ylim = c(0,110000))  
+text(barv, counts,labels=counts, pos=3, offset=0.8)  # text(x,y)
+
+
+##****** Variables Cuantitativas **************
+
+#Histograma
+hist(fld_talk_time,
+     col=rainbow(5),
+     main="Histograma 1", 
+     ylab="Frecuencias Absolutas")
+
+#Grafico de dispersion
+stripchart(fld_talk_time, 
+           method="jitter", 
+           pch=20, 
+           main="Grafica de puntos", 
+           ylab="Tiempo Hablado",
+           vertical= T, 
+           ylim=c(0,4000))
+
+#Boxplot
+library(ggplot2)
+ggplot(aes(x=" ", y = fld_talk_time),
+       data=datos) + 
+        labs(title ="Boxplot de Tiempo Hablado", 
+             y= "Tiempo Hablado") +    
+        geom_boxplot(fill="blue") +
+        theme_gray()
+
+### En los 3 graficos se puede ver la presencia de valores outliers en la variable "fld_talk_time" 
+
+
+
+##### ********************* Analisis Bivariado ******************************
+
+#***************** Variables Cualitativas *************
+
+#***** fld_tip_linea vs fld_tip_dis
+
+qplot(x=fld_tip_linea, 
+      data=datos, 
+      main="Distribucion de Tipo de Linea segun el Tipo de Dispositivo",
+      xlab="Tipo de Dispositivo", 
+      ylab = "Frecuencia",
+      ylim = c(0,100000),
+      geom="bar", 
+      colour= fld_tip_dis, 
+      fill=fld_tip_dis) +
+        theme_gray()
+
+
+#***** fld_canal vs fld_nom_vta
+
+qplot(x=fld_canal, 
+      data=datos, 
+      main="Distribucion de Canal segun Nombre Venta",
+      xlab="Tipo de Canal", 
+      ylab = "Frecuencia",
+      ylim = c(0,100000),
+      geom="bar", 
+      colour= fld_nom_vta, 
+      fill=fld_nom_vta) +
+        theme_gray()
+
+
+
+#***** Fld_tipo_contacto vs fld_nom_vta
+
+qplot(x=fld_tipo_contacto, 
+      data=datos, 
+      main="Distribucion de Tipo de Contacto segun Nombre Venta",
+      xlab="Tipo de Contacto", 
+      ylab = "Frecuencia",
+      ylim = c(0,100000),
+      geom="bar", 
+      colour= fld_nom_vta, 
+      fill=fld_nom_vta) +
+        theme_gray()
+
+
+###****** Cuantitativa vs Cualitativa
+
+# fld_talk_time vs fld_tip_linea
+promedio <-  round(tapply(fld_talk_time, fld_tip_linea,mean),2)
+promedio_a <- paste(promedio," min")
+
+bar_cuanti_cuali <- barplot(promedio,
+                            main="Grafico de Barras: Tiempo Hablado promedio segun Tipo de Linea",
+                            xlab="Tipo de Línea", 
+                            ylab="Tiempo promedio",
+                            col = c("blue","red","green"),
+                            cex.axis = 1,                              
+                            ylim = c(0,8))                            
+text(bar_cuanti_cuali, promedio, labels=promedio_a, pos=3, offset=0.8)
+
+
+# fld_talk_time vs fld_tip_dis
+promedio <-  round(tapply(fld_talk_time, fld_tip_dis,mean),2)
+promedio_a <- paste(promedio," min")
+
+bar_cuanti_cuali <- barplot(promedio,
+                            main="Grafico de Barras: Tiempo Hablado promedio segun Tipo de Dispositivo",
+                            xlab="Tipo de Dispositivo", 
+                            ylab="Tiempo promedio",
+                            col = c("blue","red","green"),
+                            cex.axis = 1,                              
+                            ylim = c(0,40))                            
+text(bar_cuanti_cuali, promedio, labels=promedio_a, pos=3, offset=0.8)
+
+
+# fld_talk_time vs fld_canal
+promedio <-  round(tapply(fld_talk_time, fld_canal,mean),2)
+promedio_a <- paste(promedio," min")
+
+bar_cuanti_cuali <- barplot(promedio,
+                            main="Grafico de Barras: Tiempo Hablado promedio segun Canal",
+                            xlab="Canal", 
+                            ylab="Tiempo promedio",
+                            col = c("blue","red","green"),
+                            cex.axis = 1,                              
+                            ylim = c(0,7))                            
+text(bar_cuanti_cuali, promedio, labels=promedio_a, pos=3, offset=0.8)
+
+
+
+boxplot(fld_talk_time~ fld_tip_linea, 
+        main= "BoxPlot de Tiempo Hablado  vs Tipo de Linea",
+        xlab = "Tipo de Línea", 
+        ylab="Tiempo Hablado",
+        col = c("red","blue"))
+
+
+####### ******************** CALIDAD DE LOS DATOS **********************
+
+#Cantidad de filas con valores perdidos = 2665
+sum(is.na(datos))
+
+# Porcentaje de valores perdidos total = 2.7% 
+ndatos <- nrow(datos)
+nperdidos <- sum(is.na(datos))
+pperdidos <- 100*nperdidos/ndatos
+pperdidos
+
+#Columnas con valores nulos
+cidx_perd <- which(colSums(is.na(datos))!=0)
+cidx_perd
+
+# Cantidad de valores perdidos en las columnas
+nperdidos <- colSums(is.na(datos[,cidx_perd]))
+nperdidos
+
+
+#Grafico de Matriz ("Matrix plot") En RStudio previamente usar: x11()
+library(VIM)
+matrixplot(datos)
+
+
+#Imputación
+
+datos_imp <- initialise(datos, method="median")
+datos_imp
